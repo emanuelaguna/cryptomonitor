@@ -1,0 +1,814 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © emanuelaguna
+
+//@version=4
+study("Monitor", "Monitoreo ADX + SQZ", false)
+
+show_label = input(false,title="--------Show label-----------")
+show_tabla = input (true,title="--------Show Tables---------")
+color   colorN = input(color.new(color.black, 30), "Color")
+color colorT = input(color.white, "Color Texto")
+
+color colorA = input(color.new(#00FF00,20),"Color alcista")
+color colorRS = input(color.new(#4db6ac,20),"Color rango subida")// 800000
+color colorRC = input(color.new(#ef9a9a,20),"Color rango caida") //   008000
+color colorB = input(color.new(#FF0000,20),"Color bajista")
+color colorAdxP = input(color.new(color.white,40),"Color ADX positiva")
+color colorAdxN = input(color.new(color.gray,20),"Color ADX negativa")
+
+
+// ————— Produces a string format usable with `tostring()` to restrict precision to ticks.
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////screeener
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////
+// INPUTS //
+
+
+
+
+// Symbols 
+// There is a limit of 40 security calls so only 40 symbols at the same time is possible
+
+// Symbols 
+// There is a limit of 40 security calls so only 40 symbols at the same time is possible
+s01 = input('XRPUSDTPERP',  type=input.symbol, group = "Symbols")
+s02 = input('BTCUSDTPERP',  type=input.symbol, group = "Symbols")
+s03 = input('DOGEUSDTPERP', type=input.symbol, group = "Symbols")
+s04 = input('BNBUSDTPERP',  type=input.symbol, group = "Symbols")
+s05 = input('ETHUSDTPERP',  type=input.symbol, group = "Symbols")
+s06 = input('ADAUSDTPERP',  type=input.symbol, group = "Symbols")
+s07 = input('ONTUSDTPERP',   type=input.symbol, group = "Symbols")
+s08 = input('NEOUSDTPERP',  type=input.symbol, group = "Symbols")
+s09 = input('GTCUSDTPERP',  type=input.symbol, group = "Symbols")
+s10 = input('RUNEUSDTPERP',  type=input.symbol, group = "Symbols")
+s11 = input('FLMUSDTPERP',  type=input.symbol, group = "Symbols")
+s12 = input('ICPUSDTPERP',  type=input.symbol, group = "Symbols")
+s13 = input('VETUSDTPERP',  type=input.symbol, group = "Symbols")
+s14 = input('XEMUSDTPERP',   type=input.symbol, group = "Symbols")
+s15 = input('XLMUSDTPERP',   type=input.symbol, group = "Symbols")
+s16 = input('NKNUSDTPERP',  type=input.symbol, group = "Symbols")
+s17 = input('CTKUSDTPERP',  type=input.symbol, group = "Symbols")
+s18 = input('LTCUSDTPERP',  type=input.symbol, group = "Symbols")
+s19 = input('UNIUSDTPERP',  type=input.symbol, group = "Symbols")
+s20 = input('SUSHIUSDTPERP',  type=input.symbol, group = "Symbols")
+s21 = input('DOTUSDTPERP',  type=input.symbol, group = "Symbols")
+s22 = input('XTZUSDTPERP',  type=input.symbol, group = "Symbols")
+s23 = input('RENUSDTPERP',  type=input.symbol, group = "Symbols")
+s24 = input('LINKUSDTPERP',   type=input.symbol, group = "Symbols")
+s25 = input('FILUSDTPERP', type=input.symbol, group = "Symbols")
+s26 = input('KSMUSDTPERP',  type=input.symbol, group = "Symbols")
+s27 = input('LUNAUSDTPERP', type=input.symbol, group = "Symbols")
+s28 = input('HNTUSDTPERP',   type=input.symbol, group = "Symbols")
+s29 = input('AXSUSDTPERP', type=input.symbol, group = "Symbols")
+s30 = input('SANDUSDTPERP',   type=input.symbol, group = "Symbols")
+s31 = input('ALICEUSDTPERP',  type=input.symbol, group = "Symbols")
+s32 = input('COTIUSDTPERP',  type=input.symbol, group = "Symbols")
+s33 = input('CHRUSDTPERP',  type=input.symbol, group = "Symbols")
+s34 = input('LINAUSDTPERP',  type=input.symbol, group = "Symbols")
+s35 = input('CHZUSDTPERP',  type=input.symbol, group = "Symbols")
+s36 = input('DODOUSDTPERP', type=input.symbol, group = "Symbols")
+s37 = input('MATICUSDTPERP',   type=input.symbol, group = "Symbols")
+s38 = input('EOSUSDTPERP',   type=input.symbol, group = "Symbols")
+s39 = input('BAKEUSDTPERP',  type=input.symbol, group = "Symbols")
+s40 = input('TOMOUSDTPERP',  type=input.symbol, group = "Symbols")
+
+
+//SQUEEZE MOMOENUTM PARAMS
+
+//show_Momen = input(true, title="-----------Show squeeze momentum-------")
+int lengthM = input(20,    title="MOM Length", minval=1, step=1)
+srcM            = input(close, title="MOM Source", type=input.source)
+int length  = input(20,    title="SQZ Length",  minval=1, step=1)
+src = input(close, title="SQZ Source",  type=input.source)
+lbR = input(title="Pivot Lookback Right", defval=1)
+lbL = input(title="Pivot Lookback Left", defval=1)
+
+///ADX PARAMS
+
+adxlen   = input(14,    title = "ADX Smoothing")
+dilen    = input(14,    title = "DI Length") 
+keyLevel = input(23,    title = "Key level for ADX")
+
+
+
+
+
+///////////////
+// FUNCTIONS //
+
+// Rounding Function
+roundn(x, n) => 
+    mult = 1 
+    if n != 0
+        for i = 1 to abs(n)
+            mult := mult * 10
+    
+    n >= 0 ? round(x * mult) / mult : round(x / mult) * mult 
+
+// Function for ADX
+
+
+// ADX
+dirmov(len) =>
+	up = change(high)
+	down = -change(low)
+	truerange = rma(tr, len)
+	plus = fixnan(100 * rma(up > down and up > 0 ? up : 0, len) / truerange)
+	minus = fixnan(100 * rma(down > up and down > 0 ? down : 0, len) / truerange)
+	[plus, minus]
+
+adx(dilen, adxlen) => 
+	[plus, minus] = dirmov(dilen)
+	sum = plus + minus
+	adx = 100 * rma(abs(plus - minus) / (sum == 0 ? 1 : sum), adxlen)
+	[adx, plus, minus]
+
+[adxValue, diplus, diminus] = adx(dilen, adxlen)
+
+//PIVOTES
+
+plFound(osc) => na(pivotlow(osc, lbL, lbR)) ? false : true
+phFound(osc) => na(pivothigh(osc, lbL, lbR)) ? false : true
+
+///// numeber to string function and color
+convert(bsf,mf,af)=>
+    
+    ta = af==1 ? '\t|Pendiente POSITIVA ↑ 23|' : af==2 ? '\t|Pendiente NEGATIVA ↑ 23|' : 
+       af==3 ? '\t|Pendiente NEGATIVA ↓ 23 |' : af==4? '\t|Pendiente POSITIVA ↓ 23|' : '-'
+       
+       
+    ca = af==1 ? colorAdxP : af==2 ? colorAdxN : 
+       af==3 ? colorAdxN : af==4? colorAdxP : color.gray
+
+    tm = mf==1 ? '\t|Direccionalidad ALCISTA|' : mf==2 ? '| RANGO O CAIDA |' : 
+       mf==3 ? '\t|Direccionalidad BAJISTA|' : mf==4 ? '| RANGO O SUBIDA |' : '-'
+       
+    cm = mf==1 ? colorA : mf==2 ? colorRC : 
+       mf==3 ? colorB : mf==4 ? colorRS : color.gray
+       
+    tbs= bsf==1 ? '\t|SELL|\t' : bsf==2 ? '\tBUY\t' : '\t| |\t'
+    
+    cbs= bsf==1 ? color.red : bsf==2 ? color.green : color.gray
+    
+    
+   
+    [tbs,tm,ta,cbs,cm,ca]
+
+// RSI Screener Function (overbought / orvesold)
+// Function outputs only 2 values
+// * Value - Numeric value you want to display in screener
+// * Cindition - True/False variable that shows if current symbol should be displayed in the screener
+
+
+screenerFunc() => 
+
+
+    
+    sz  = linreg(srcM - avg(avg(highest(high, lengthM), lowest(low, lengthM)), sma(close, lengthM)), lengthM, 0)
+    [adxValue, diplus, diminus] = adx(dilen, adxlen)
+    
+    
+    	
+    ///////c CONDICIONES
+
+
+
+    a1=adxValue >= 23
+    a2=adxValue < 23
+    a3=adxValue >= adxValue[1]
+    a4=adxValue < adxValue[1]
+
+    sc1 = sz >= 0
+    sc2 = sz < 0
+    sc3 = sz >= sz[1]
+    sc4 = sz < sz[1]
+
+    buy_cond1= plFound(sz) and adxValue < adxValue[1] ? true : false
+    buy_cond2=  phFound(adxValue) and sz >= sz[1] and sz<0 ? true : false
+
+    sell_cond1=phFound(sz) and adxValue < adxValue[1] ? true : false
+    sell_cond2=phFound(adxValue) and sz < sz[1] and sz>0? true : false
+    
+    cond=sell_cond1 or sell_cond2 or buy_cond1 or buy_cond2 ? true : false
+   // buysell= sell_cond1 or sell_cond2 ? 'Sell' : buy_cond1 or buy_cond2 ? 'Buy' : na ORIGINAL
+    bs = sell_cond1 or sell_cond2 ? 1 : buy_cond1 or buy_cond2 ? 2 : na
+    //tl_cond=buy_cond1 or buy_cond2 or sell_cond2 or sell_cond1
+    
+    
+    
+    iAdx = a1 and a3 ? '\tPendiente positiva ↑ 23' : a1 and a4 ? '\tPendiente negativa ↑ 23' : 
+      a2 and a4 ? '\tPendiente negativa ↓ 23' : a2 and a3 ? '\tPendiente positiva ↓ 23' : '-' //ORIGINAL
+    a = a1 and a3 ? 1 : a1 and a4 ? 2 : 
+       a2 and a4 ? 3 : a2 and a3 ? 4 : na
+       
+       
+   
+    iMom = sc1 and sc3 ? 'Direccionalidad alcista' : sc1 and sc4 ? 'Direccionalidad bajista' : 
+       sc2 and sc4 ? 'Direccionalidad bajista' : sc2 and sc3 ? 'Direccinalidad alcista' : '-'  //ORIGNAL
+       
+       
+    m = sc1 and sc3 ? 1 : sc1 and sc4 ? 2 : 
+       sc2 and sc4 ? 3 : sc2 and sc3 ? 4 : na
+    price=close
+
+    
+    [price, cond , a, m, bs]
+
+
+aS=array.new_string(41)
+
+array.set(	aS,	0	,	s01	)
+array.set(	aS,	1	,	s02	)
+array.set(	aS,	2	,	s03	)
+array.set(	aS,	3	,	s04	)
+array.set(	aS,	4	,	s05	)
+array.set(	aS,	5	,	s06	)
+array.set(	aS,	6	,	s07	)
+array.set(	aS,	7	,	s08	)
+array.set(	aS,	8	,	s09	)
+array.set(	aS,	9	,	s10	)
+array.set(	aS,	10	,	s11	)
+array.set(	aS,	11	,	s12	)
+array.set(	aS,	12	,	s13	)
+array.set(	aS,	13	,	s14	)
+array.set(	aS,	14	,	s15	)
+array.set(	aS,	15	,	s16	)
+array.set(	aS,	16	,	s17	)
+array.set(	aS,	17	,	s18	)
+array.set(	aS,	18	,	s19	)
+array.set(	aS,	19	,	s20	)
+array.set(	aS,	20	,	s21	)
+array.set(	aS,	21	,	s22	)
+array.set(	aS,	22	,	s23	)
+array.set(	aS,	23	,	s24	)
+array.set(	aS,	24	,	s25	)
+array.set(	aS,	25	,	s26	)
+array.set(	aS,	26	,	s27	)
+array.set(	aS,	27	,	s28	)
+array.set(	aS,	28	,	s29	)
+array.set(	aS,	29	,	s30	)
+array.set(	aS,	30	,	s31	)
+array.set(	aS,	31	,	s32	)
+array.set(	aS,	32	,	s33	)
+array.set(	aS,	33	,	s34	)
+array.set(	aS,	34	,	s35	)
+array.set(	aS,	35	,	s36	)
+array.set(	aS,	36	,	s37	)
+array.set(	aS,	37	,	s38	)
+array.set(	aS,	38	,	s39	)
+array.set(	aS,	39	,	s40	)
+
+aPrice = array.new_float(41)
+aCond= array.new_bool(41)
+aA = array.new_float(41)
+aM = array.new_float(41)
+aBs = array.new_float(41)
+
+
+///////////////////////////////////////
+// Running Functions for all sybmols //
+
+[v01, c01,a01,m01,bs01] = security(s01, timeframe.period, screenerFunc())
+[v02, c02,a02,m02,bs02] = security(s02, timeframe.period, screenerFunc())
+[v03, c03,a03,m03,bs03] = security(s03, timeframe.period, screenerFunc())
+[v04, c04,a04,m04,bs04] = security(s04, timeframe.period, screenerFunc())
+[v05, c05,a05,m05,bs05] = security(s05, timeframe.period, screenerFunc())
+[v06, c06,a06,m06,bs06] = security(s06, timeframe.period, screenerFunc())
+[v07, c07,a07,m07,bs07] = security(s07, timeframe.period, screenerFunc())
+[v08, c08,a08,m08,bs08] = security(s08, timeframe.period, screenerFunc())
+[v09, c09,a09,m09,bs09] = security(s09, timeframe.period, screenerFunc())
+[v10, c10,a10,m10,bs10] = security(s10, timeframe.period, screenerFunc())
+[v11, c11,a11,m11,bs11] = security(s11, timeframe.period, screenerFunc())
+[v12, c12,a12,m12,bs12] = security(s12, timeframe.period, screenerFunc())
+[v13, c13,a13,m13,bs13] = security(s13, timeframe.period, screenerFunc())
+[v14, c14,a14,m14,bs14] = security(s14, timeframe.period, screenerFunc())
+[v15, c15,a15,m15,bs15] = security(s15, timeframe.period, screenerFunc())
+[v16, c16,a16,m16,bs16] = security(s16, timeframe.period, screenerFunc())
+[v17, c17,a17,m17,bs17] = security(s17, timeframe.period, screenerFunc())
+[v18, c18,a18,m18,bs18] = security(s18, timeframe.period, screenerFunc())
+[v19, c19,a19,m19,bs19] = security(s19, timeframe.period, screenerFunc())
+[v20, c20,a20,m20,bs20] = security(s20, timeframe.period, screenerFunc())
+[v21, c21,a21,m21,bs21] = security(s21, timeframe.period, screenerFunc())
+[v22, c22,a22,m22,bs22] = security(s22, timeframe.period, screenerFunc())
+[v23, c23,a23,m23,bs23] = security(s23, timeframe.period, screenerFunc())
+[v24, c24,a24,m24,bs24] = security(s24, timeframe.period, screenerFunc())
+[v25, c25,a25,m25,bs25] = security(s25, timeframe.period, screenerFunc())
+[v26, c26,a26,m26,bs26] = security(s26, timeframe.period, screenerFunc())
+[v27, c27,a27,m27,bs27] = security(s27, timeframe.period, screenerFunc())
+[v28, c28,a28,m28,bs28] = security(s28, timeframe.period, screenerFunc())
+[v29, c29,a29,m29,bs29] = security(s29, timeframe.period, screenerFunc())
+[v30, c30,a30,m30,bs30] = security(s30, timeframe.period, screenerFunc())
+[v31, c31,a31,m31,bs31] = security(s31, timeframe.period, screenerFunc())
+[v32, c32,a32,m32,bs32] = security(s32, timeframe.period, screenerFunc())
+[v33, c33,a33,m33,bs33] = security(s33, timeframe.period, screenerFunc())
+[v34, c34,a34,m34,bs34] = security(s34, timeframe.period, screenerFunc())
+[v35, c35,a35,m35,bs35] = security(s35, timeframe.period, screenerFunc())
+[v36, c36,a36,m36,bs36] = security(s36, timeframe.period, screenerFunc())
+[v37, c37,a37,m37,bs37] = security(s37, timeframe.period, screenerFunc())
+[v38, c38,a38,m38,bs38] = security(s38, timeframe.period, screenerFunc())
+[v39, c39,a39,m39,bs39] = security(s39, timeframe.period, screenerFunc())
+[v40, c40,a40,m40,bs40] = security(s40, timeframe.period, screenerFunc())
+
+/////////////////////////////VALORES A ARRAY 
+array.set(	aPrice,	0	,	v01	)
+array.set(	aPrice,	1	,	v02	)
+array.set(	aPrice,	2	,	v03	)
+array.set(	aPrice,	3	,	v04	)
+array.set(	aPrice,	4	,	v05	)
+array.set(	aPrice,	5	,	v06	)
+array.set(	aPrice,	6	,	v07	)
+array.set(	aPrice,	7	,	v08	)
+array.set(	aPrice,	8	,	v09	)
+array.set(	aPrice,	9	,	v10	)
+array.set(	aPrice,	10	,	v11	)
+array.set(	aPrice,	11	,	v12	)
+array.set(	aPrice,	12	,	v13	)
+array.set(	aPrice,	13	,	v14	)
+array.set(	aPrice,	14	,	v15	)
+array.set(	aPrice,	15	,	v16	)
+array.set(	aPrice,	16	,	v17	)
+array.set(	aPrice,	17	,	v18	)
+array.set(	aPrice,	18	,	v19	)
+array.set(	aPrice,	19	,	v20	)
+array.set(	aPrice,	20	,	v21	)
+array.set(	aPrice,	21	,	v22	)
+array.set(	aPrice,	22	,	v23	)
+array.set(	aPrice,	23	,	v24	)
+array.set(	aPrice,	24	,	v25	)
+array.set(	aPrice,	25	,	v26	)
+array.set(	aPrice,	26	,	v27	)
+array.set(	aPrice,	27	,	v28	)
+array.set(	aPrice,	28	,	v29	)
+array.set(	aPrice,	29	,	v30	)
+array.set(	aPrice,	30	,	v31	)
+array.set(	aPrice,	31	,	v32	)
+array.set(	aPrice,	32	,	v33	)
+array.set(	aPrice,	33	,	v34	)
+array.set(	aPrice,	34	,	v35	)
+array.set(	aPrice,	35	,	v36	)
+array.set(	aPrice,	36	,	v37	)
+array.set(	aPrice,	37	,	v38	)
+array.set(	aPrice,	38	,	v39	)
+array.set(	aPrice,	39	,	v40	)
+
+
+
+
+
+
+/// To STRING
+
+
+asA = array.new_string(41)
+asM = array.new_string(41)
+asBs = array.new_string(41)
+
+
+
+[	tbs01	,	tm01	,	ta01	,	cbs01	,	cm01	,	ca01	]	= convert(	bs01	,	m01	,	a01	)
+[	tbs02	,	tm02	,	ta02	,	cbs02	,	cm02	,	ca02	]	= convert(	bs02	,	m02	,	a02	)
+[	tbs03	,	tm03	,	ta03	,	cbs03	,	cm03	,	ca03	]	= convert(	bs03	,	m03	,	a03	)
+[	tbs04	,	tm04	,	ta04	,	cbs04	,	cm04	,	ca04	]	= convert(	bs04	,	m04	,	a04	)
+[	tbs05	,	tm05	,	ta05	,	cbs05	,	cm05	,	ca05	]	= convert(	bs05	,	m05	,	a05	)
+[	tbs06	,	tm06	,	ta06	,	cbs06	,	cm06	,	ca06	]	= convert(	bs06	,	m06	,	a06	)
+[	tbs07	,	tm07	,	ta07	,	cbs07	,	cm07	,	ca07	]	= convert(	bs07	,	m07	,	a07	)
+[	tbs08	,	tm08	,	ta08	,	cbs08	,	cm08	,	ca08	]	= convert(	bs08	,	m08	,	a08	)
+[	tbs09	,	tm09	,	ta09	,	cbs09	,	cm09	,	ca09	]	= convert(	bs09	,	m09	,	a09	)
+[	tbs10	,	tm10	,	ta10	,	cbs10	,	cm10	,	ca10	]	= convert(	bs10	,	m10	,	a10	)
+[	tbs11	,	tm11	,	ta11	,	cbs11	,	cm11	,	ca11	]	= convert(	bs11	,	m11	,	a11	)
+[	tbs12	,	tm12	,	ta12	,	cbs12	,	cm12	,	ca12	]	= convert(	bs12	,	m12	,	a12	)
+[	tbs13	,	tm13	,	ta13	,	cbs13	,	cm13	,	ca13	]	= convert(	bs13	,	m13	,	a13	)
+[	tbs14	,	tm14	,	ta14	,	cbs14	,	cm14	,	ca14	]	= convert(	bs14	,	m14	,	a14	)
+[	tbs15	,	tm15	,	ta15	,	cbs15	,	cm15	,	ca15	]	= convert(	bs15	,	m15	,	a15	)
+[	tbs16	,	tm16	,	ta16	,	cbs16	,	cm16	,	ca16	]	= convert(	bs16	,	m16	,	a16	)
+[	tbs17	,	tm17	,	ta17	,	cbs17	,	cm17	,	ca17	]	= convert(	bs17	,	m17	,	a17	)
+[	tbs18	,	tm18	,	ta18	,	cbs18	,	cm18	,	ca18	]	= convert(	bs18	,	m18	,	a18	)
+[	tbs19	,	tm19	,	ta19	,	cbs19	,	cm19	,	ca19	]	= convert(	bs19	,	m19	,	a19	)
+[	tbs20	,	tm20	,	ta20	,	cbs20	,	cm20	,	ca20	]	= convert(	bs20	,	m20	,	a20	)
+[	tbs21	,	tm21	,	ta21	,	cbs21	,	cm21	,	ca21	]	= convert(	bs21	,	m21	,	a21	)
+[	tbs22	,	tm22	,	ta22	,	cbs22	,	cm22	,	ca22	]	= convert(	bs22	,	m22	,	a22	)
+[	tbs23	,	tm23	,	ta23	,	cbs23	,	cm23	,	ca23	]	= convert(	bs23	,	m23	,	a23	)
+[	tbs24	,	tm24	,	ta24	,	cbs24	,	cm24	,	ca24	]	= convert(	bs24	,	m24	,	a24	)
+[	tbs25	,	tm25	,	ta25	,	cbs25	,	cm25	,	ca25	]	= convert(	bs25	,	m25	,	a25	)
+[	tbs26	,	tm26	,	ta26	,	cbs26	,	cm26	,	ca26	]	= convert(	bs26	,	m26	,	a26	)
+[	tbs27	,	tm27	,	ta27	,	cbs27	,	cm27	,	ca27	]	= convert(	bs27	,	m27	,	a27	)
+[	tbs28	,	tm28	,	ta28	,	cbs28	,	cm28	,	ca28	]	= convert(	bs28	,	m28	,	a28	)
+[	tbs29	,	tm29	,	ta29	,	cbs29	,	cm29	,	ca29	]	= convert(	bs29	,	m29	,	a29	)
+[	tbs30	,	tm30	,	ta30	,	cbs30	,	cm30	,	ca30	]	= convert(	bs30	,	m30	,	a30	)
+[	tbs31	,	tm31	,	ta31	,	cbs31	,	cm31	,	ca31	]	= convert(	bs31	,	m31	,	a31	)
+[	tbs32	,	tm32	,	ta32	,	cbs32	,	cm32	,	ca32	]	= convert(	bs32	,	m32	,	a32	)
+[	tbs33	,	tm33	,	ta33	,	cbs33	,	cm33	,	ca33	]	= convert(	bs33	,	m33	,	a33	)
+[	tbs34	,	tm34	,	ta34	,	cbs34	,	cm34	,	ca34	]	= convert(	bs34	,	m34	,	a34	)
+[	tbs35	,	tm35	,	ta35	,	cbs35	,	cm35	,	ca35	]	= convert(	bs35	,	m35	,	a35	)
+[	tbs36	,	tm36	,	ta36	,	cbs36	,	cm36	,	ca36	]	= convert(	bs36	,	m36	,	a36	)
+[	tbs37	,	tm37	,	ta37	,	cbs37	,	cm37	,	ca37	]	= convert(	bs37	,	m37	,	a37	)
+[	tbs38	,	tm38	,	ta38	,	cbs38	,	cm38	,	ca38	]	= convert(	bs38	,	m38	,	a38	)
+[	tbs39	,	tm39	,	ta39	,	cbs39	,	cm39	,	ca39	]	= convert(	bs39	,	m39	,	a39	)
+[	tbs40	,	tm40	,	ta40	,	cbs40	,	cm40	,	ca40	]	= convert(	bs40	,	m40	,	a40	)
+
+
+//////////////////////////////////////////////////////////////////////////////////
+
+acA = array.new_color(41)
+acM = array.new_color(41)
+acBs = array.new_color(41)
+
+array.set(	acBs,	0	,	cbs01	)
+array.set(	acBs,	1	,	cbs02	)
+array.set(	acBs,	2	,	cbs03	)
+array.set(	acBs,	3	,	cbs04	)
+array.set(	acBs,	4	,	cbs05	)
+array.set(	acBs,	5	,	cbs06	)
+array.set(	acBs,	6	,	cbs07	)
+array.set(	acBs,	7	,	cbs08	)
+array.set(	acBs,	8	,	cbs09	)
+array.set(	acBs,	9	,	cbs10	)
+array.set(	acBs,	10	,	cbs11	)
+array.set(	acBs,	11	,	cbs12	)
+array.set(	acBs,	12	,	cbs13	)
+array.set(	acBs,	13	,	cbs14	)
+array.set(	acBs,	14	,	cbs15	)
+array.set(	acBs,	15	,	cbs16	)
+array.set(	acBs,	16	,	cbs17	)
+array.set(	acBs,	17	,	cbs18	)
+array.set(	acBs,	18	,	cbs19	)
+array.set(	acBs,	19	,	cbs20	)
+array.set(	acBs,	20	,	cbs21	)
+array.set(	acBs,	21	,	cbs22	)
+array.set(	acBs,	22	,	cbs23	)
+array.set(	acBs,	23	,	cbs24	)
+array.set(	acBs,	24	,	cbs25	)
+array.set(	acBs,	25	,	cbs26	)
+array.set(	acBs,	26	,	cbs27	)
+array.set(	acBs,	27	,	cbs28	)
+array.set(	acBs,	28	,	cbs29	)
+array.set(	acBs,	29	,	cbs30	)
+array.set(	acBs,	30	,	cbs31	)
+array.set(	acBs,	31	,	cbs32	)
+array.set(	acBs,	32	,	cbs33	)
+array.set(	acBs,	33	,	cbs34	)
+array.set(	acBs,	34	,	cbs35	)
+array.set(	acBs,	35	,	cbs36	)
+array.set(	acBs,	36	,	cbs37	)
+array.set(	acBs,	37	,	cbs38	)
+array.set(	acBs,	38	,	cbs39	)
+array.set(	acBs,	39	,	cbs40	)
+
+
+array.set(	acA,	0	,	ca01	)
+array.set(	acA,	1	,	ca02	)
+array.set(	acA,	2	,	ca03	)
+array.set(	acA,	3	,	ca04	)
+array.set(	acA,	4	,	ca05	)
+array.set(	acA,	5	,	ca06	)
+array.set(	acA,	6	,	ca07	)
+array.set(	acA,	7	,	ca08	)
+array.set(	acA,	8	,	ca09	)
+array.set(	acA,	9	,	ca10	)
+array.set(	acA,	10	,	ca11	)
+array.set(	acA,	11	,	ca12	)
+array.set(	acA,	12	,	ca13	)
+array.set(	acA,	13	,	ca14	)
+array.set(	acA,	14	,	ca15	)
+array.set(	acA,	15	,	ca16	)
+array.set(	acA,	16	,	ca17	)
+array.set(	acA,	17	,	ca18	)
+array.set(	acA,	18	,	ca19	)
+array.set(	acA,	19	,	ca20	)
+array.set(	acA,	20	,	ca21	)
+array.set(	acA,	21	,	ca22	)
+array.set(	acA,	22	,	ca23	)
+array.set(	acA,	23	,	ca24	)
+array.set(	acA,	24	,	ca25	)
+array.set(	acA,	25	,	ca26	)
+array.set(	acA,	26	,	ca27	)
+array.set(	acA,	27	,	ca28	)
+array.set(	acA,	28	,	ca29	)
+array.set(	acA,	29	,	ca30	)
+array.set(	acA,	30	,	ca31	)
+array.set(	acA,	31	,	ca32	)
+array.set(	acA,	32	,	ca33	)
+array.set(	acA,	33	,	ca34	)
+array.set(	acA,	34	,	ca35	)
+array.set(	acA,	35	,	ca36	)
+array.set(	acA,	36	,	ca37	)
+array.set(	acA,	37	,	ca38	)
+array.set(	acA,	38	,	ca39	)
+array.set(	acA,	39	,	ca40	)
+
+
+
+array.set(	acM,	0	,	cm01	)
+array.set(	acM,	1	,	cm02	)
+array.set(	acM,	2	,	cm03	)
+array.set(	acM,	3	,	cm04	)
+array.set(	acM,	4	,	cm05	)
+array.set(	acM,	5	,	cm06	)
+array.set(	acM,	6	,	cm07	)
+array.set(	acM,	7	,	cm08	)
+array.set(	acM,	8	,	cm09	)
+array.set(	acM,	9	,	cm10	)
+array.set(	acM,	10	,	cm11	)
+array.set(	acM,	11	,	cm12	)
+array.set(	acM,	12	,	cm13	)
+array.set(	acM,	13	,	cm14	)
+array.set(	acM,	14	,	cm15	)
+array.set(	acM,	15	,	cm16	)
+array.set(	acM,	16	,	cm17	)
+array.set(	acM,	17	,	cm18	)
+array.set(	acM,	18	,	cm19	)
+array.set(	acM,	19	,	cm20	)
+array.set(	acM,	20	,	cm21	)
+array.set(	acM,	21	,	cm22	)
+array.set(	acM,	22	,	cm23	)
+array.set(	acM,	23	,	cm24	)
+array.set(	acM,	24	,	cm25	)
+array.set(	acM,	25	,	cm26	)
+array.set(	acM,	26	,	cm27	)
+array.set(	acM,	27	,	cm28	)
+array.set(	acM,	28	,	cm29	)
+array.set(	acM,	29	,	cm30	)
+array.set(	acM,	30	,	cm31	)
+array.set(	acM,	31	,	cm32	)
+array.set(	acM,	32	,	cm33	)
+array.set(	acM,	33	,	cm34	)
+array.set(	acM,	34	,	cm35	)
+array.set(	acM,	35	,	cm36	)
+array.set(	acM,	36	,	cm37	)
+array.set(	acM,	37	,	cm38	)
+array.set(	acM,	38	,	cm39	)
+array.set(	acM,	39	,	cm40	)
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+
+array.set(	asBs,	0	,	tbs01	)
+array.set(	asBs,	1	,	tbs02	)
+array.set(	asBs,	2	,	tbs03	)
+array.set(	asBs,	3	,	tbs04	)
+array.set(	asBs,	4	,	tbs05	)
+array.set(	asBs,	5	,	tbs06	)
+array.set(	asBs,	6	,	tbs07	)
+array.set(	asBs,	7	,	tbs08	)
+array.set(	asBs,	8	,	tbs09	)
+array.set(	asBs,	9	,	tbs10	)
+array.set(	asBs,	10	,	tbs11	)
+array.set(	asBs,	11	,	tbs12	)
+array.set(	asBs,	12	,	tbs13	)
+array.set(	asBs,	13	,	tbs14	)
+array.set(	asBs,	14	,	tbs15	)
+array.set(	asBs,	15	,	tbs16	)
+array.set(	asBs,	16	,	tbs17	)
+array.set(	asBs,	17	,	tbs18	)
+array.set(	asBs,	18	,	tbs19	)
+array.set(	asBs,	19	,	tbs20	)
+array.set(	asBs,	20	,	tbs21	)
+array.set(	asBs,	21	,	tbs22	)
+array.set(	asBs,	22	,	tbs23	)
+array.set(	asBs,	23	,	tbs24	)
+array.set(	asBs,	24	,	tbs25	)
+array.set(	asBs,	25	,	tbs26	)
+array.set(	asBs,	26	,	tbs27	)
+array.set(	asBs,	27	,	tbs28	)
+array.set(	asBs,	28	,	tbs29	)
+array.set(	asBs,	29	,	tbs30	)
+array.set(	asBs,	30	,	tbs31	)
+array.set(	asBs,	31	,	tbs32	)
+array.set(	asBs,	32	,	tbs33	)
+array.set(	asBs,	33	,	tbs34	)
+array.set(	asBs,	34	,	tbs35	)
+array.set(	asBs,	35	,	tbs36	)
+array.set(	asBs,	36	,	tbs37	)
+array.set(	asBs,	37	,	tbs38	)
+array.set(	asBs,	38	,	tbs39	)
+array.set(	asBs,	39	,	tbs40	)
+
+
+array.set(	asM,	0	,	tm01	)
+array.set(	asM,	1	,	tm02	)
+array.set(	asM,	2	,	tm03	)
+array.set(	asM,	3	,	tm04	)
+array.set(	asM,	4	,	tm05	)
+array.set(	asM,	5	,	tm06	)
+array.set(	asM,	6	,	tm07	)
+array.set(	asM,	7	,	tm08	)
+array.set(	asM,	8	,	tm09	)
+array.set(	asM,	9	,	tm10	)
+array.set(	asM,	10	,	tm11	)
+array.set(	asM,	11	,	tm12	)
+array.set(	asM,	12	,	tm13	)
+array.set(	asM,	13	,	tm14	)
+array.set(	asM,	14	,	tm15	)
+array.set(	asM,	15	,	tm16	)
+array.set(	asM,	16	,	tm17	)
+array.set(	asM,	17	,	tm18	)
+array.set(	asM,	18	,	tm19	)
+array.set(	asM,	19	,	tm20	)
+array.set(	asM,	20	,	tm21	)
+array.set(	asM,	21	,	tm22	)
+array.set(	asM,	22	,	tm23	)
+array.set(	asM,	23	,	tm24	)
+array.set(	asM,	24	,	tm25	)
+array.set(	asM,	25	,	tm26	)
+array.set(	asM,	26	,	tm27	)
+array.set(	asM,	27	,	tm28	)
+array.set(	asM,	28	,	tm29	)
+array.set(	asM,	29	,	tm30	)
+array.set(	asM,	30	,	tm31	)
+array.set(	asM,	31	,	tm32	)
+array.set(	asM,	32	,	tm33	)
+array.set(	asM,	33	,	tm34	)
+array.set(	asM,	34	,	tm35	)
+array.set(	asM,	35	,	tm36	)
+array.set(	asM,	36	,	tm37	)
+array.set(	asM,	37	,	tm38	)
+array.set(	asM,	38	,	tm39	)
+array.set(	asM,	39	,	tm40	)
+
+
+
+array.set(	asA,	0	,	ta01	)
+array.set(	asA,	1	,	ta02	)
+array.set(	asA,	2	,	ta03	)
+array.set(	asA,	3	,	ta04	)
+array.set(	asA,	4	,	ta05	)
+array.set(	asA,	5	,	ta06	)
+array.set(	asA,	6	,	ta07	)
+array.set(	asA,	7	,	ta08	)
+array.set(	asA,	8	,	ta09	)
+array.set(	asA,	9	,	ta10	)
+array.set(	asA,	10	,	ta11	)
+array.set(	asA,	11	,	ta12	)
+array.set(	asA,	12	,	ta13	)
+array.set(	asA,	13	,	ta14	)
+array.set(	asA,	14	,	ta15	)
+array.set(	asA,	15	,	ta16	)
+array.set(	asA,	16	,	ta17	)
+array.set(	asA,	17	,	ta18	)
+array.set(	asA,	18	,	ta19	)
+array.set(	asA,	19	,	ta20	)
+array.set(	asA,	20	,	ta21	)
+array.set(	asA,	21	,	ta22	)
+array.set(	asA,	22	,	ta23	)
+array.set(	asA,	23	,	ta24	)
+array.set(	asA,	24	,	ta25	)
+array.set(	asA,	25	,	ta26	)
+array.set(	asA,	26	,	ta27	)
+array.set(	asA,	27	,	ta28	)
+array.set(	asA,	28	,	ta29	)
+array.set(	asA,	29	,	ta30	)
+array.set(	asA,	30	,	ta31	)
+array.set(	asA,	31	,	ta32	)
+array.set(	asA,	32	,	ta33	)
+array.set(	asA,	33	,	ta34	)
+array.set(	asA,	34	,	ta35	)
+array.set(	asA,	35	,	ta36	)
+array.set(	asA,	36	,	ta37	)
+array.set(	asA,	37	,	ta38	)
+array.set(	asA,	38	,	ta39	)
+array.set(	asA,	39	,	ta40	)
+
+
+//////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+var table panel = table.new( position.top_left, 5, 23)
+if barstate.islast and show_tabla
+    // Table header.
+    table.cell(panel, 0, 0, "Activo",text_color = colorT,  bgcolor = colorN)
+    table.cell(panel, 1, 0, "Precio", text_color = colorT, bgcolor = colorN)
+    table.cell(panel, 2, 0, "Buy/Sell", text_color = colorT, bgcolor = colorN)
+    table.cell(panel, 3, 0, "Direccionalidad", text_color = colorT, bgcolor = colorN)
+    table.cell(panel, 4, 0, "ADX", text_color = colorT, bgcolor = colorN)
+
+
+for _i = 0 to 19
+    // ————— Only execute table code on last bar.
+    if barstate.islast and show_tabla
+        // Period in left column.
+        table.cell(panel, 0, _i + 1, array.get(aS, _i), text_color = colorT, bgcolor = colorN)
+        table.cell(panel, 1, _i + 1,tostring(array.get(aPrice, _i)), text_color =colorT, bgcolor = colorN )
+        table.cell(panel, 2, _i + 1,array.get(asBs, _i), text_color = colorT, bgcolor = array.get(acBs, _i))
+        table.cell(panel, 3, _i + 1,array.get(asM, _i), text_color = colorT, bgcolor = array.get(acM, _i))
+        table.cell(panel, 4, _i + 1,array.get(asA, _i), text_color = colorT, bgcolor = array.get(acA, _i))
+        
+        
+
+
+var table panel2 = table.new( position.top_right, 5, 23)
+if barstate.islast and show_tabla
+    // Table header.
+    table.cell(panel2, 0, 0, "Activo", text_color = colorT, bgcolor = colorN)
+    table.cell(panel2, 1, 0, "Precio", text_color = colorT, bgcolor = colorN)
+    table.cell(panel2, 2, 0, "Buy/Sell", text_color = colorT, bgcolor = colorN)
+    table.cell(panel2, 3, 0, "Direccionalidad", text_color = colorT, bgcolor = colorN)
+    table.cell(panel2, 4, 0, "ADX", text_color = colorT, bgcolor = colorN)
+
+
+for _i = 0 to 20
+
+    // ————— Only execute table code on last bar.
+    if barstate.islast and show_tabla
+
+        table.cell(panel2, 0, _i + 1, array.get(aS, _i + 20), text_color = colorT, bgcolor = colorN)
+        table.cell(panel2, 1, _i + 1,tostring(array.get(aPrice, _i + 20)), text_color = colorT, bgcolor = colorN )
+        table.cell(panel2, 2, _i + 1,array.get(asBs, _i + 20), text_color = colorT, bgcolor = array.get(acBs, _i + 20))
+        table.cell(panel2, 3, _i + 1,array.get(asM, _i + 20), text_color = colorT, bgcolor = array.get(acM, _i + 20))
+        table.cell(panel2, 4, _i + 1,array.get(asA, _i + 20), text_color = colorT, bgcolor = array.get(acA, _i + 20))
+
+
+////////////////////
+// Screener label // main idea from @ QuantNomad
+
+scr_label = ''
+
+// Compose a screener message
+scr_label := show_label  ? scr_label + s01 + ' ' + tostring(roundn(v01, 2)) + ' ' + tbs01 + ' ' + tm01 + ' ' + ta01 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s02 + ' ' + tostring(roundn(v02, 2)) + ' ' + tbs02 + ' ' + tm02 + ' ' + ta02 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s03 + ' ' + tostring(roundn(v03, 2)) + ' ' + tbs03 + ' ' + tm03 + ' ' + ta04 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s04 + ' ' + tostring(roundn(v04, 2)) + ' ' + tbs04 + ' ' + tm04 + ' ' + ta04 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s05 + ' ' + tostring(roundn(v05, 2)) + ' ' + tbs05 + ' ' + tm05 + ' ' + ta05 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s06 + ' ' + tostring(roundn(v06, 2)) + ' ' + tbs06 + ' ' + tm06 + ' ' + ta06 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s03 + ' ' + tostring(roundn(v03, 2)) + ' ' + tbs03 + ' ' + tm03 + ' ' + ta04 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s04 + ' ' + tostring(roundn(v04, 2)) + ' ' + tbs04 + ' ' + tm04 + ' ' + ta04 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s05 + ' ' + tostring(roundn(v05, 2)) + ' ' + tbs05 + ' ' + tm05 + ' ' + ta05 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s06 + ' ' + tostring(roundn(v06, 2)) + ' ' + tbs06 + ' ' + tm06 + ' ' + ta06 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s07 + ' ' + tostring(roundn(v07, 2)) + ' ' + tbs07 + ' ' + tm07 + ' ' + ta07 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s08 + ' ' + tostring(roundn(v08, 2)) + ' ' + tbs08 + ' ' + tm08 + ' ' + ta08 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s09 + ' ' + tostring(roundn(v09, 2)) + ' ' + tbs09 + ' ' + tm09 + ' ' + ta09 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s10 + ' ' + tostring(roundn(v10, 2)) + ' ' + tbs10 + ' ' + tm10 + ' ' + ta10 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s11 + ' ' + tostring(roundn(v11, 2)) + ' ' + tbs11 + ' ' + tm11 + ' ' + ta11 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s12 + ' ' + tostring(roundn(v12, 2)) + ' ' + tbs12 + ' ' + tm12 + ' ' + ta12 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s13 + ' ' + tostring(roundn(v13, 2)) + ' ' + tbs13 + ' ' + tm13 + ' ' + ta13 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s14 + ' ' + tostring(roundn(v14, 2)) + ' ' + tbs14 + ' ' + tm14 + ' ' + ta14 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s15 + ' ' + tostring(roundn(v15, 2)) + ' ' + tbs15 + ' ' + tm15 + ' ' + ta15 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s16 + ' ' + tostring(roundn(v16, 2)) + ' ' + tbs16 + ' ' + tm16 + ' ' + ta16 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s17 + ' ' + tostring(roundn(v17, 2)) + ' ' + tbs17 + ' ' + tm17 + ' ' + ta17 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s18 + ' ' + tostring(roundn(v18, 2)) + ' ' + tbs18 + ' ' + tm18 + ' ' + ta18 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s19 + ' ' + tostring(roundn(v19, 2)) + ' ' + tbs19 + ' ' + tm19 + ' ' + ta19 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s20 + ' ' + tostring(roundn(v20, 2)) + ' ' + tbs20 + ' ' + tm20 + ' ' + ta20 + '\n\n'  : scr_label
+
+scr_label := show_label  ? scr_label + s21 + ' ' + tostring(roundn(v21, 2)) + ' ' + tbs21 + ' ' + tm21 + ' ' + ta21 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s22 + ' ' + tostring(roundn(v22, 2)) + ' ' + tbs22 + ' ' + tm22 + ' ' + ta22 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s23 + ' ' + tostring(roundn(v23, 2)) + ' ' + tbs23 + ' ' + tm23 + ' ' + ta23 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s24 + ' ' + tostring(roundn(v24, 2)) + ' ' + tbs24 + ' ' + tm24 + ' ' + ta24 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s25 + ' ' + tostring(roundn(v25, 2)) + ' ' + tbs25 + ' ' + tm25 + ' ' + ta25 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s26 + ' ' + tostring(roundn(v26, 2)) + ' ' + tbs26 + ' ' + tm26 + ' ' + ta26 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s27 + ' ' + tostring(roundn(v27, 2)) + ' ' + tbs27 + ' ' + tm27 + ' ' + ta27 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s28 + ' ' + tostring(roundn(v28, 2)) + ' ' + tbs28 + ' ' + tm28 + ' ' + ta28 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s29 + ' ' + tostring(roundn(v29, 2)) + ' ' + tbs29 + ' ' + tm29 + ' ' + ta29 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s30 + ' ' + tostring(roundn(v30, 2)) + ' ' + tbs30 + ' ' + tm30 + ' ' + ta30 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s31 + ' ' + tostring(roundn(v31, 2)) + ' ' + tbs31 + ' ' + tm31 + ' ' + ta31 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s32 + ' ' + tostring(roundn(v32, 2)) + ' ' + tbs32 + ' ' + tm32 + ' ' + ta32 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s33 + ' ' + tostring(roundn(v33, 2)) + ' ' + tbs33 + ' ' + tm33 + ' ' + ta33 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s34 + ' ' + tostring(roundn(v34, 2)) + ' ' + tbs34 + ' ' + tm34 + ' ' + ta34 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s35 + ' ' + tostring(roundn(v35, 2)) + ' ' + tbs35 + ' ' + tm35 + ' ' + ta35 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s36 + ' ' + tostring(roundn(v36, 2)) + ' ' + tbs36 + ' ' + tm36 + ' ' + ta36 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s37 + ' ' + tostring(roundn(v37, 2)) + ' ' + tbs37 + ' ' + tm37 + ' ' + ta37 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s38 + ' ' + tostring(roundn(v38, 2)) + ' ' + tbs38 + ' ' + tm38 + ' ' + ta38 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s39 + ' ' + tostring(roundn(v39, 2)) + ' ' + tbs39 + ' ' + tm39 + ' ' + ta39 + '\n\n'  : scr_label
+scr_label := show_label  ? scr_label + s40 + ' ' + tostring(roundn(v40, 2)) + ' ' + tbs40 + ' ' + tm40 + ' ' + ta40 + '\n\n'  : scr_label
+// Plot Label on the chart
+if(show_label)
+    lab_l = label.new(
+               bar_index, 0, 'Trading Latino monitoreo: \n\n' + scr_label, 
+               color     = color(na), 
+               textcolor = color.white, 
+               style     = label.style_labeldown,
+               yloc      = yloc.price,
+               size = size.normal)
+            
+    // This will keep screener only for the last bar
+    label.delete(lab_l[1])
+
+//ALERTSSSSSSSSSSSSSSSSSSSS
+
+
+
+
+alertCond1 = c01 or c02 or c03	or c04 or	c05 ? true : false
+alertCond2 = c06 or	c07 or	c08 or	c09	or c10 ? true : false
+alertCond3 = c11 or	c12	or c13 or	c14 or	c15 ? true :false
+alertCond4 = c16 or	c17 or	c18 or	c19 or	c20 ? true : false
+alertCond5 = c16 or	c17 or	c18 or	c19 or	c20 ? true : false
+alertCond6 = c26 or	c27 or	c28 or	c29 or	c30 ? true : false
+alertCond7 = c31 or	c32 or	c33 or	c34 or	c35 ? true : false
+alertCond8 = c36 or	c37 or	c38 or	c39 or	c40 ? true : false
+alertcondition(alertCond1, 'Compra o venta (1-5)', 'Compra o venta')
+alertcondition(alertCond2, 'Compra o venta (6-10)', 'Compra o venta')
+alertcondition(alertCond3, 'Compra o venta (11-15)', 'Compra o venta')
+alertcondition(alertCond4, 'Compra o venta (16-20)', 'Compra o venta')
+alertcondition(alertCond5, 'Compra o venta (21-25)', 'Compra o venta')
+alertcondition(alertCond6, 'Compra o venta (26-30)', 'Compra o venta')
+alertcondition(alertCond7, 'Compra o venta (31-35)', 'Compra o venta')
+alertcondition(alertCond8, 'Compra o venta (36-540)', 'Compra o venta')
+
